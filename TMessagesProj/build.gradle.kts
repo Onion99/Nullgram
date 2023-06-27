@@ -1,7 +1,10 @@
 @file:Suppress("UnstableApiUsage")
 
 import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
-import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
+import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
+import java.nio.file.Paths
+
+//import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
 
 plugins {
     id("com.android.application")
@@ -108,7 +111,7 @@ android {
 
     externalNativeBuild {
         cmake {
-            path = File(projectDir, "jni/CMakeLists.txt")
+            path("jni/CMakeLists.txt")
         }
     }
 
@@ -138,7 +141,7 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = File(projectDir, "config/release.keystore")
+            storeFile = File(projectDir, "config/onion_im.jks")
             storePassword = (keystorePwd ?: System.getenv("KEYSTORE_PASS"))
             keyAlias = (alias ?: System.getenv("ALIAS_NAME"))
             keyPassword = (pwd ?: System.getenv("ALIAS_PASS"))
@@ -159,8 +162,8 @@ android {
                 }
             }
 
-            the<CrashlyticsExtension>().nativeSymbolUploadEnabled = true
-            the<CrashlyticsExtension>().mappingFileUploadEnabled = true
+//            the<CrashlyticsExtension>().nativeSymbolUploadEnabled = true
+//            the<CrashlyticsExtension>().mappingFileUploadEnabled = true
         }
 
         getByName("debug") {
@@ -176,10 +179,28 @@ android {
                 arguments += listOf(
                     "-DANDROID_STL=c++_static",
                     "-DANDROID_PLATFORM=android-21",
-                    "-DCMAKE_C_COMPILER_LAUNCHER=ccache",
-                    "-DCMAKE_CXX_COMPILER_LAUNCHER=ccache",
-                    "-DNDK_CCACHE=ccache"
                 )
+                System.getenv("PATH").split(File.pathSeparator).any { path ->
+                    val file = Paths.get("${path}${File.separator}ccache${if (DefaultNativePlatform.getCurrentOperatingSystem().isWindows) ".exe" else ""}").toFile()
+
+                    if (file.exists()) {
+                        println("Using ccache ${file.getAbsolutePath()}")
+                        arguments += listOf(
+                            "-DANDROID_CCACHE=${file.getAbsolutePath()}"
+                        )
+                        arguments += listOf(
+                            "-DCMAKE_C_COMPILER_LAUNCHER=${file.getAbsolutePath()}"
+                        )
+                        arguments += listOf(
+                            "-DCMAKE_CXX_COMPILER_LAUNCHER=${file.getAbsolutePath()}"
+                        )
+                        arguments += listOf(
+                            "-DNDK_CCACHE=${file.getAbsolutePath()}"
+                        )
+                    }
+
+                    return@any true
+                }
             }
         }
     }

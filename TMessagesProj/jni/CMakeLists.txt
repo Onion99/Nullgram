@@ -1,19 +1,11 @@
 cmake_minimum_required(VERSION 3.6.0)
-project(tmessages)
-
-find_program(CCACHE ccache)
-
-if (CCACHE)
-    set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE})
-    set(CMAKE_C_COMPILER_LAUNCHER ${CCACHE})
-endif ()
 
 set(CMAKE_CXX_FLAGS "-std=c++14 -DANDROID -g")
 set(CMAKE_C_FLAGS "-w -std=c11 -DANDROID -D_LARGEFILE_SOURCE=1 -g")
 set(CMAKE_ASM_FLAGS "${CFLAGS} -x assembler-with-cpp")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffunction-sections -fdata-sections")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffunction-sections -fdata-sections")
-set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-Bsymbolic,--exclude-libs,libtgvoip.a,libtgcalls.a,libtgcalls_tp.a,libtgnet.a,liblz4.a,libflac.a,librlottie.a,libsqlite.a,
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--exclude-libs,libtgvoip.a,libtgcalls.a,libtgcalls_tp.a,libtgnet.a,liblz4.a,libflac.a,librlottie.a,libsqlite.a,
 ${CMAKE_HOME_DIRECTORY}/ffmpeg/${ANDROID_ABI}/libswscale.a,
 ${CMAKE_HOME_DIRECTORY}/ffmpeg/${ANDROID_ABI}/libavformat.a,
 ${CMAKE_HOME_DIRECTORY}/ffmpeg/${ANDROID_ABI}/libavcodec.a,
@@ -23,7 +15,6 @@ ${CMAKE_HOME_DIRECTORY}/ffmpeg/${ANDROID_ABI}/libswresample.a,
 ${CMAKE_HOME_DIRECTORY}/ffmpeg/${ANDROID_ABI}/libvpx.a,
 ${CMAKE_HOME_DIRECTORY}/boringssl/lib/libssl_${ANDROID_ABI}.a,
 ${CMAKE_HOME_DIRECTORY}/boringssl/lib/libcrypto_${ANDROID_ABI}.a")
-
 
 if (${ANDROID_ABI} STREQUAL "armeabi-v7a" OR ${ANDROID_ABI} STREQUAL "arm64-v8a")
     enable_language(ASM)
@@ -211,13 +202,12 @@ set_target_properties(sqlite PROPERTIES
 target_compile_definitions(sqlite PUBLIC
         NULL=0 SOCKLEN_T=socklen_t LOCALE_NOT_USED ANDROID_NDK DISABLE_IMPORTGL AVOID_TABLES ANDROID_TILE_BASED_DECODE HAVE_STRCHRNUL=0 ANDROID_ARMV6_IDCT)
 
-
 #voip
 include(${CMAKE_HOME_DIRECTORY}/voip/CMakeLists.txt)
 
 include(${CMAKE_HOME_DIRECTORY}/integrity/CMakeLists.txt)
 
-set(NATIVE_LIB "tmessages.45")
+set(NATIVE_LIB "tmessages.42")
 
 #tmessages
 add_library(${NATIVE_LIB} SHARED
@@ -253,10 +243,10 @@ if (${ANDROID_ABI} STREQUAL "armeabi-v7a")
     target_compile_definitions(${NATIVE_LIB} PUBLIC
             ANDROID_ARM_NEON=false)
     target_sources(${NATIVE_LIB} PRIVATE
-        third_party/libyuv/source/compare_neon.cc
-        third_party/libyuv/source/rotate_neon.cc
-        third_party/libyuv/source/row_neon.cc
-        third_party/libyuv/source/scale_neon.cc)
+            third_party/libyuv/source/compare_neon.cc
+            third_party/libyuv/source/rotate_neon.cc
+            third_party/libyuv/source/row_neon.cc
+            third_party/libyuv/source/scale_neon.cc)
 else()
     set_target_properties(${NATIVE_LIB} PROPERTIES
             ANDROID_ARM_NEON FALSE
