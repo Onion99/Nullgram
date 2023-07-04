@@ -49,6 +49,14 @@ fun Project.configureBaseExtension() {
         }
 
         packagingOptions.jniLibs.useLegacyPackaging = false
+
+        buildFeatures.compose = true
+        composeOptions.kotlinCompilerExtensionVersion = "1.4.8"
+    }
+
+    dependencies {
+        addComposeOfficialDependencies()
+        addCoreAndroidUiDependencies()
     }
 }
 
