@@ -42,6 +42,7 @@ import org.telegram.ui.Components.CubicBezierInterpolator
 import org.telegram.ui.Components.LayoutHelper
 import org.telegram.ui.Components.RLottieDrawable
 import org.telegram.ui.page.IntroPage
+import org.telegram.ui.view.helper.UIHelper
 
 class LaunchActivity : AppCompatActivity(){
 
@@ -87,6 +88,7 @@ class LaunchActivity : AppCompatActivity(){
     }
 
     private fun initUiConfig(){
+        UIHelper.checkSystemDisplaySize(this,resources.configuration)
         AndroidUtilities.isInMultiwindow = isInMultiWindowMode
         AndroidUtilities.fillStatusBarHeight(this)
     }

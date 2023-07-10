@@ -779,7 +779,6 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
                 return bm;
             }, 22);
             loadTexture(telegramMaskProvider, 23);
-
             updateTelegramTextures();
             updatePowerfulTextures();
             Intro.setPrivateTextures(textures[19], textures[20]);
@@ -788,7 +787,6 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
             Intro.setIcTextures(textures[4], textures[5], textures[6], textures[7], textures[8], textures[9], textures[10], textures[11], textures[12]);
             Intro.onSurfaceCreated();
             currentDate = System.currentTimeMillis() - 1000;
-
             return true;
         }
 
