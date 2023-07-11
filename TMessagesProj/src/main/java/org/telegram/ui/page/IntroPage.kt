@@ -226,7 +226,8 @@ class IntroPage : BaseComposeViewPage() {
                                 rectTmp.set(0f, 0f, measuredWidth.toFloat(), measuredHeight.toFloat())
                                 draw(canvas!!, rectTmp, dip(4f), null)
                             }
-                            this.invalidate()
+                            //this.invalidate() todo: 不要在 jetpack compose AndroidView 调用 invalidate() 严重影响性能
+                            this.requestLayout()
                         }
                     }
                     btnStart.run {
