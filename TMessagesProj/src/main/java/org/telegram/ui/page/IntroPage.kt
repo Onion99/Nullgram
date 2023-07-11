@@ -37,8 +37,11 @@ import android.view.TextureView
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import androidx.appcompat.widget.AppCompatTextView
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -61,6 +64,11 @@ import org.telegram.ktx.view.dsl.params.horizontalMargin
 import org.telegram.ktx.view.dsl.params.lParams
 import org.telegram.ktx.view.dsl.params.wrapContent
 import org.telegram.ktx.view.dsl.textureView
+import org.telegram.ktx.view.dsl.viewPager
+import org.telegram.ktx.view.property.createSimpleSelectorRoundRectDrawable
+import org.telegram.ktx.view.property.dip
+import org.telegram.ktx.view.property.gravityCenter
+import org.telegram.ktx.view.property.gravityCenterHorizontal
 import org.telegram.messenger.AndroidUtilities
 import org.telegram.messenger.ApplicationLoader
 import org.telegram.messenger.DispatchQueue
@@ -70,11 +78,9 @@ import org.telegram.messenger.Intro
 import org.telegram.messenger.LocaleController
 import org.telegram.messenger.R
 import org.telegram.ui.ActionBar.Theme
+import org.telegram.ui.Components.voip.CellFlickerDrawable
 import org.telegram.ui.base.BaseComposeViewPage
-import org.telegram.ktx.view.dsl.viewPager
-import org.telegram.ktx.view.property.dip
-import org.telegram.ktx.view.property.gravityCenter
-import org.telegram.ktx.view.property.gravityCenterHorizontal
+import org.telegram.ui.drawable.ViewFlickerDrawable
 import javax.microedition.khronos.egl.EGL10
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.egl.EGLContext
@@ -82,8 +88,8 @@ import javax.microedition.khronos.egl.EGLDisplay
 import javax.microedition.khronos.egl.EGLSurface
 import javax.microedition.khronos.opengles.GL10
 
-const val INTRO_PAGE_ICON_WIDTH   = 200
-const val INTRO_PAGE_ICON_HEIGHT  = 150
+const val INTRO_PAGE_ICON_WIDTH = 200
+const val INTRO_PAGE_ICON_HEIGHT = 150
 const val EGL_CONTEXT_CLIENT_VERSION = 0x3098
 const val EGL_OPENGL_ES2_BIT = 4
 
@@ -124,6 +130,11 @@ class IntroPage : BaseComposeViewPage() {
     private var eglThread: EGLThread? = null
     private lateinit var viewPager: ViewPager
     private lateinit var bottomPages: IntroViewPagerIndicator
+
+    val viewFlickerDrawable = ViewFlickerDrawable().apply {
+        repeatProgress = 2f
+    }
+
     @Preview
     @Composable
     private fun IntroView() {
@@ -138,7 +149,7 @@ class IntroPage : BaseComposeViewPage() {
                         addOnPageChangeListener(object : ViewPager.OnPageChangeListener {
                             override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) {
                                 bottomPages.setPageOffset(position, positionOffset)
-                                if(measuredWidth == 0) return
+                                if (measuredWidth == 0) return
                                 val offset = (position * measuredWidth + positionOffsetPixels - currentViewPagerPage * measuredWidth) / measuredWidth
                                 Intro.setScrollOffset(offset.toFloat())
                             }
@@ -146,6 +157,7 @@ class IntroPage : BaseComposeViewPage() {
                             override fun onPageSelected(position: Int) {
                                 currentViewPagerPage = position
                             }
+
                             override fun onPageScrollStateChanged(state: Int) {}
                         })
                     }
@@ -162,22 +174,25 @@ class IntroPage : BaseComposeViewPage() {
                     }
                 })
             AndroidView(
-                modifier = Modifier.padding(top = 149.dp).size(INTRO_PAGE_ICON_WIDTH.dp, INTRO_PAGE_ICON_HEIGHT.dp).align(Alignment.TopCenter),
+                modifier = Modifier
+                    .padding(top = 149.dp)
+                    .size(INTRO_PAGE_ICON_WIDTH.dp, INTRO_PAGE_ICON_HEIGHT.dp)
+                    .align(Alignment.TopCenter),
                 factory = {
-                    it.textureView{
-                        surfaceTextureListener = object : TextureView.SurfaceTextureListener{
+                    it.textureView {
+                        surfaceTextureListener = object : TextureView.SurfaceTextureListener {
                             override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
-                                if(eglThread == null){
+                                if (eglThread == null) {
                                     eglThread = EGLThread(surface)
-                                    with(eglThread!!){
+                                    with(eglThread!!) {
                                         setSurfaceTextureSize(width, height)
                                         postRunnable {
                                             val time = (System.currentTimeMillis() - currentDate) / 1000.0f
                                             Intro.setPage(currentViewPagerPage)
                                             Intro.setDate(time)
                                             Intro.onDrawFrame(0)
-                                            if(isAlive && eglDisplay != null && eglSurface != null){
-                                                egl10.eglSwapBuffers(eglDisplay,eglSurface)
+                                            if (isAlive && eglDisplay != null && eglSurface != null) {
+                                                egl10.eglSwapBuffers(eglDisplay, eglSurface)
                                             }
                                         }
                                         postRunnable(drawRunnable)
@@ -200,6 +215,29 @@ class IntroPage : BaseComposeViewPage() {
                     }
                 }
             )
+            AndroidView(
+                modifier = Modifier.padding(34.dp,29.dp).fillMaxWidth().height(50.dp).align(Alignment.BottomCenter),
+                factory = {
+                    val btnStart = object : AppCompatTextView(it) {
+                        override fun onDraw(canvas: Canvas?) {
+                            super.onDraw(canvas)
+                            viewFlickerDrawable.run {
+                                parentWidth = measuredWidth
+                                rectTmp.set(0f, 0f, measuredWidth.toFloat(), measuredHeight.toFloat())
+                                draw(canvas!!, rectTmp, dip(4f), null)
+                            }
+                            this.invalidate()
+                        }
+                    }
+                    btnStart.run {
+                        text = LocaleController.getString("StartMessaging", R.string.StartMessaging)
+                        gravity = gravityCenter
+                        textSize = 15f
+                        setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
+                        background = createSimpleSelectorRoundRectDrawable(dip(6),Theme.getColor(Theme.key_changephoneinfo_image2), Theme.getColor(Theme.key_chats_actionPressedBackground))
+                    }
+                    btnStart
+                })
         }
     }
 
@@ -220,7 +258,7 @@ class IntroPage : BaseComposeViewPage() {
         private var lastDrawFrame: Long = 0
         private val telegramMaskProvider = GenericProvider<Void, Bitmap> { _ ->
             val size = context.dip(INTRO_PAGE_ICON_HEIGHT)
-            val bitmap = Bitmap.createBitmap( context.dip(INTRO_PAGE_ICON_WIDTH), size, Bitmap.Config.ARGB_8888)
+            val bitmap = Bitmap.createBitmap(context.dip(INTRO_PAGE_ICON_WIDTH), size, Bitmap.Config.ARGB_8888)
             val canvas = Canvas(bitmap)
             canvas.drawColor(Theme.getColor(Theme.key_windowBackgroundWhite))
             val paint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -455,7 +493,7 @@ class IntroPage : BaseComposeViewPage() {
 
         override fun instantiateItem(container: ViewGroup, position: Int): Any {
             val contentLayout = container.context.frameLayout {
-                val headerTextView  = textView {
+                val headerTextView = textView {
                     setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
                     textSize = 26f
                     gravity = gravityCenter
@@ -467,8 +505,8 @@ class IntroPage : BaseComposeViewPage() {
                     gravity = gravityCenter
                     text = AndroidUtilities.replaceTags(messages[position])
                 }
-                add(headerTextView,lParams(wrapContent,wrapContent,gravityCenterHorizontal){ topMargin = dip(316) ; horizontalMargin = dip(20)})
-                add(messageTextView,lParams(wrapContent,wrapContent,gravityCenterHorizontal){ topMargin = dip(366)})
+                add(headerTextView, lParams(wrapContent, wrapContent, gravityCenterHorizontal) { topMargin = dip(316); horizontalMargin = dip(20) })
+                add(messageTextView, lParams(wrapContent, wrapContent, gravityCenterHorizontal) { topMargin = dip(366) })
             }
             container.addView(contentLayout, 0)
             return contentLayout
@@ -486,8 +524,9 @@ class IntroPage : BaseComposeViewPage() {
 }
 
 const val INTRO_VIEW_PAGER_INDICATOR_VIEW_WIDTH = 5f
-const val INTRO_VIEW_PAGER_INDICATOR_VIEW_OVAL_WIDTH = 5f /2
+const val INTRO_VIEW_PAGER_INDICATOR_VIEW_OVAL_WIDTH = 5f / 2
 const val INTRO_VIEW_PAGER_INDICATOR_VIEW_MARGIN_WIDTH = 11f
+
 @SuppressLint("ViewConstructor")
 class IntroViewPagerIndicator(context: Context, private val viewPager: ViewPager, private val pagesCount: Int) : View(context) {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -522,7 +561,7 @@ class IntroViewPagerIndicator(context: Context, private val viewPager: ViewPager
         for (pagePosition in 0 until pagesCount) {
             if (pagePosition == currentPage) continue
             pageIndexViewWidth = pagePosition * dip(INTRO_VIEW_PAGER_INDICATOR_VIEW_MARGIN_WIDTH)
-            rect.set(pageIndexViewWidth,0f,(pageIndexViewWidth + dip(INTRO_VIEW_PAGER_INDICATOR_VIEW_WIDTH)),dip(INTRO_VIEW_PAGER_INDICATOR_VIEW_WIDTH))
+            rect.set(pageIndexViewWidth, 0f, (pageIndexViewWidth + dip(INTRO_VIEW_PAGER_INDICATOR_VIEW_WIDTH)), dip(INTRO_VIEW_PAGER_INDICATOR_VIEW_WIDTH))
             canvas.drawRoundRect(rect, dip(INTRO_VIEW_PAGER_INDICATOR_VIEW_OVAL_WIDTH), dip(INTRO_VIEW_PAGER_INDICATOR_VIEW_OVAL_WIDTH), paint)
         }
         //  draw current dot color
@@ -535,9 +574,11 @@ class IntroViewPagerIndicator(context: Context, private val viewPager: ViewPager
         pageIndexViewWidth = currentPage * dip(INTRO_VIEW_PAGER_INDICATOR_VIEW_MARGIN_WIDTH)
         if (progress != 0f) {
             if (scrollPosition >= currentPage) {
-                rect[pageIndexViewWidth, 0f, pageIndexViewWidth + dip(INTRO_VIEW_PAGER_INDICATOR_VIEW_WIDTH) + dip(INTRO_VIEW_PAGER_INDICATOR_VIEW_MARGIN_WIDTH) * progress] = dip(INTRO_VIEW_PAGER_INDICATOR_VIEW_WIDTH)
+                rect[pageIndexViewWidth, 0f, pageIndexViewWidth + dip(INTRO_VIEW_PAGER_INDICATOR_VIEW_WIDTH) + dip(INTRO_VIEW_PAGER_INDICATOR_VIEW_MARGIN_WIDTH) * progress] =
+                    dip(INTRO_VIEW_PAGER_INDICATOR_VIEW_WIDTH)
             } else {
-                rect[pageIndexViewWidth - dip(INTRO_VIEW_PAGER_INDICATOR_VIEW_MARGIN_WIDTH) * (1.0f - progress), 0f, (pageIndexViewWidth + dip(INTRO_VIEW_PAGER_INDICATOR_VIEW_WIDTH))] = dip(INTRO_VIEW_PAGER_INDICATOR_VIEW_WIDTH)
+                rect[pageIndexViewWidth - dip(INTRO_VIEW_PAGER_INDICATOR_VIEW_MARGIN_WIDTH) * (1.0f - progress), 0f, (pageIndexViewWidth + dip(INTRO_VIEW_PAGER_INDICATOR_VIEW_WIDTH))] =
+                    dip(INTRO_VIEW_PAGER_INDICATOR_VIEW_WIDTH)
             }
         } else {
             rect[pageIndexViewWidth, 0f, (pageIndexViewWidth + dip(INTRO_VIEW_PAGER_INDICATOR_VIEW_WIDTH))] = dip(INTRO_VIEW_PAGER_INDICATOR_VIEW_WIDTH)
