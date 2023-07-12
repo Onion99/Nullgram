@@ -130,7 +130,7 @@
         </activity-alias>
 
         <activity-alias
-            android:enabled="true"
+            android:enabled="false"
             android:name="org.telegram.messenger.MainIcon"
             android:targetActivity="org.telegram.ui.LaunchActivity"
             android:icon="@mipmap/ic_launcher_mainicon"

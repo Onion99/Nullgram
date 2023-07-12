@@ -19,6 +19,7 @@
 
 package org.telegram.ui.view.helper
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Point
@@ -40,7 +41,10 @@ object UIHelper {
     private var displayMetrics = DisplayMetrics()
     // 显示的大小（以像素为单位
     var displaySize = Point()
-
+    // 状态栏高度
+    var statusBarHeight = 0
+    // 底部导航栏高度
+    var navigationBarHeight = 0
 
     // ------------------------------------------------------------------------
     // 检查系统屏幕配置,从而展示UI所需要的界面尺寸
@@ -76,6 +80,8 @@ object UIHelper {
                 displaySize.y = newSize
             }
         }
+        statusBarHeight     = getStatusBarHeight(context)
+        navigationBarHeight = getNavigationBarHeight(context)
     }
 
     // ------------------------------------------------------------------------
@@ -94,5 +100,18 @@ object UIHelper {
     fun dpF(value:Float):Float{
         if(value == 0F) return 0F
         return floor((density * value))
+    }
+
+
+    @SuppressLint("InternalInsetResource", "DiscouragedApi")
+    fun getStatusBarHeight(context: Context): Int {
+        val resourceId = context.resources.getIdentifier("status_bar_height", "dimen", "android")
+        return if (resourceId > 0) context.resources.getDimensionPixelSize(resourceId) else 0
+    }
+
+    @SuppressLint("InternalInsetResource", "DiscouragedApi")
+    private fun getNavigationBarHeight(context: Context): Int {
+        val resourceId = context.resources.getIdentifier("navigation_bar_height", "dimen", "android")
+        return if (resourceId > 0) context.resources.getDimensionPixelSize(resourceId) else 0
     }
 }

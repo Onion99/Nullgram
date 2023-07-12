@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.core.view.ViewCompat
 import androidx.core.view.doOnAttach
 import androidx.core.view.doOnLayout
+import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleRegistry
 import androidx.lifecycle.ViewTreeLifecycleOwner
@@ -45,7 +46,7 @@ abstract class BaseComposeViewPage : BaseFragment(), SavedStateRegistryOwner {
 
     private val savedStateRegistryController = SavedStateRegistryController.create(this)
     private val lifecycleRegistry = LifecycleRegistry(this)
-
+    lateinit var composeView:ComposeView
 
     override fun createView(context: Context): View = ComposeView(context).apply {
         parentActivity.window.decorView.findViewById<ViewGroup>(android.R.id.content)?.let { decorView ->
@@ -60,6 +61,7 @@ abstract class BaseComposeViewPage : BaseFragment(), SavedStateRegistryOwner {
             }
         }
         actionBar.setAddToContainer(false)
+        composeView = this
         initComposeView(this)
     }
 

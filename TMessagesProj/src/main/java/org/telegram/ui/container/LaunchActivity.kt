@@ -34,10 +34,13 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import org.telegram.messenger.AndroidUtilities
+import org.telegram.messenger.NotificationCenter
 import org.telegram.messenger.R
 import org.telegram.ui.ActionBar.BaseFragment
 import org.telegram.ui.ActionBar.DrawerLayoutContainer
 import org.telegram.ui.ActionBar.INavigationLayout
+import org.telegram.ui.ActionBar.Theme
+import org.telegram.ui.Cells.DrawerProfileCell
 import org.telegram.ui.Components.CubicBezierInterpolator
 import org.telegram.ui.Components.LayoutHelper
 import org.telegram.ui.Components.RLottieDrawable
@@ -46,8 +49,15 @@ import org.telegram.ui.view.helper.UIHelper
 
 class LaunchActivity : AppCompatActivity(){
 
-    companion object {
-        private val mainFragmentsStack = ArrayList<BaseFragment>()
+    private val mainFragmentsStack = ArrayList<BaseFragment>()
+
+    private val evenObserver by lazy {
+        NotificationCenter.NotificationCenterDelegate { id, account, args ->
+            if (id == NotificationCenter.needSetDayNightTheme){
+                actionBarLayout.animateThemedValues(args[0] as Theme.ThemeInfo, args[3] as Int , args[1] as Boolean, true, null);
+                DrawerProfileCell.switchingTheme = false
+            }
+        }
     }
 
 
@@ -136,8 +146,12 @@ class LaunchActivity : AppCompatActivity(){
 
     private fun initPrimaryPage(){
         actionBarLayout.addFragmentToStack(IntroPage())
+        NotificationCenter.getGlobalInstance().addObserver(evenObserver,NotificationCenter.needSetDayNightTheme)
     }
-//    private fun drawRippleAbove(canvas:Canvas,parent:View){
-//
-//    }
+
+
+    override fun onDestroy() {
+        NotificationCenter.getGlobalInstance().removeObserver(evenObserver,NotificationCenter.needSetDayNightTheme)
+        super.onDestroy()
+    }
 }

@@ -22,6 +22,11 @@ import org.telegram.ui.ActionBar.Theme;
 
 import java.util.HashMap;
 
+// ------------------------------------------------------------------------
+// Rlottie 是一个独立于平台的独立 C++ 库，用于实时渲染基于矢量的动画和艺术
+// https://github.com/Samsung/rlottie#readme
+// https://github.com/TelegramMessenger/rlottie
+// ------------------------------------------------------------------------
 public class RLottieImageView extends ImageView {
 
     private HashMap<String, Integer> layerColors;
@@ -115,6 +120,14 @@ public class RLottieImageView extends ImageView {
             drawable.setPlayInDirectionOfCustomEndFrame(true);
             drawable.setCurrentFrame(drawable.getFramesCount());
             drawable.setCustomEndFrame(0);
+        }
+    }
+
+    public void setReverseNo() {
+        if (drawable != null) {
+            drawable.setPlayInDirectionOfCustomEndFrame(false);
+            drawable.setCurrentFrame(0);
+            drawable.setCustomEndFrame(drawable.getFramesCount());
         }
     }
 

@@ -23,6 +23,7 @@ import android.content.Context
 import android.view.TextureView
 import android.view.View
 import androidx.viewpager.widget.ViewPager
+import org.telegram.ui.Components.RLottieImageView
 
 typealias NewViewRef<V> = (Context) -> V
 
@@ -36,4 +37,8 @@ inline fun Context.viewPager(initView: ViewPager.() -> Unit = {}):ViewPager{
 
 inline fun Context.textureView(initView: TextureView.() -> Unit = {}): TextureView {
     return TextureView(this).apply(initView)
+}
+
+inline fun Context.rLottieImageView(initView: RLottieImageView.() -> Unit = {}): RLottieImageView {
+    return RLottieImageView(this).apply(initView)
 }
