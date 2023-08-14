@@ -27,6 +27,7 @@ import android.widget.LinearLayout
 import androidx.annotation.IdRes
 import androidx.annotation.StyleRes
 import androidx.core.view.get
+import androidx.viewpager.widget.ViewPager
 import org.telegram.ktx.view.dsl.NO_THEME
 import org.telegram.ktx.view.dsl.view
 import kotlin.contracts.InvocationKind
@@ -73,51 +74,54 @@ inline fun Context.verticalLayout(
     @IdRes id: Int = View.NO_ID,
     @StyleRes theme: Int = NO_THEME,
     initView: LinearLayout.() -> Unit = {}
-): LinearLayout {
-    return view(::LinearLayout, id, theme) {
-        orientation = LinearLayout.VERTICAL
-        initView()
-    }
+): LinearLayout = view(::LinearLayout, id, theme) {
+    orientation = LinearLayout.VERTICAL
+    initView()
 }
 
 inline fun View.verticalLayout(
     @IdRes id: Int = View.NO_ID,
     @StyleRes theme: Int = NO_THEME,
     initView: LinearLayout.() -> Unit = {}
-): LinearLayout {
-    return context.verticalLayout(id, theme, initView)
-}
+): LinearLayout = context.verticalLayout(id, theme, initView)
 
 
 inline fun Context.horizontalLayout(
     @IdRes id: Int = View.NO_ID,
     @StyleRes theme: Int = NO_THEME,
     initView: LinearLayout.() -> Unit = {}
-): LinearLayout {
-    return view(::LinearLayout, id, theme, initView)
-}
+): LinearLayout = view(::LinearLayout, id, theme, initView)
 
 inline fun View.horizontalLayout(
     @IdRes id: Int = View.NO_ID,
     @StyleRes theme: Int = NO_THEME,
     initView: LinearLayout.() -> Unit = {}
-): LinearLayout {
-    return context.horizontalLayout(id, theme, initView)
-}
+): LinearLayout = context.horizontalLayout(id, theme, initView)
 
 
 inline fun Context.frameLayout(
     @IdRes id: Int = View.NO_ID,
     @StyleRes theme: Int = NO_THEME,
     initView: FrameLayout.() -> Unit = {}
-): FrameLayout {
-    return view(::FrameLayout, id, theme, initView)
-}
+): FrameLayout = view(::FrameLayout, id, theme, initView)
 
 inline fun View.frameLayout(
     @IdRes id: Int = View.NO_ID,
     @StyleRes theme: Int = NO_THEME,
     initView: FrameLayout.() -> Unit = {}
-): FrameLayout {
-    return context.frameLayout(id, theme, initView)
-}
+): FrameLayout = context.frameLayout(id, theme, initView)
+
+
+inline fun Context.viewPager(
+    @IdRes id: Int = View.NO_ID,
+    @StyleRes theme: Int = NO_THEME,
+    initView: ViewPager.() -> Unit = {}
+): ViewPager = view(::ViewPager, id, theme, initView)
+
+inline fun View.viewPager(
+    @IdRes id: Int = View.NO_ID,
+    @StyleRes theme: Int = NO_THEME,
+    initView: ViewPager.() -> Unit = {}
+): ViewPager = context.viewPager(id, theme, initView)
+
+

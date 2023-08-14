@@ -49,7 +49,7 @@ interface ViewFactory {
     fun <V : View> getThemeAttributeStyledView(
         clazz: Class<out V>,
         context: Context,
-        @Suppress("UNUSED_PARAMETER") attrs: AttributeSet?,
+        attrs: AttributeSet?,
         @AttrRes styleThemeAttribute: Int
     ): V
 }
@@ -61,24 +61,24 @@ inline fun <reified V : View> ViewFactory.getThemeAttrStyledView(
 ): V = getThemeAttributeStyledView(V::class.java, context, attrs, styleThemeAttribute)
 
 
-typealias ViewInstantiator = (Class<out View>, Context) -> View?
-typealias ThemeAttrStyledViewInstantiator = (Class<out View>, Context, Int) -> View?
+typealias ViewInstantiation = (Class<out View>, Context) -> View?
+typealias ThemeAttrStyledViewInstantiation = (Class<out View>, Context, Int) -> View?
 
 class ViewFactoryImpl : ViewFactory {
     companion object {
         val appInstance = ViewFactoryImpl()
     }
 
-    fun add(factory: ViewInstantiator) {
-        viewInstantiators.add(factory)
+    fun add(factory: ViewInstantiation) {
+        viewInstantiations.add(factory)
     }
 
-    fun addForThemeAttrStyled(factory: ThemeAttrStyledViewInstantiator) {
-        themeAttrStyledViewInstantiators.add(factory)
+    fun addForThemeAttrStyled(factory: ThemeAttrStyledViewInstantiation) {
+        themeAttrStyledViewInstantiations.add(factory)
     }
 
     override operator fun <V : View> invoke(clazz: Class<out V>, context: Context): V {
-        viewInstantiators.forEachReversedByIndex { factory ->
+        viewInstantiations.forEachReversedByIndex { factory ->
             @Suppress("UNCHECKED_CAST")
             factory(clazz, context)?.let { view ->
                 check(clazz.isInstance(view)) {
@@ -93,10 +93,10 @@ class ViewFactoryImpl : ViewFactory {
     override fun <V : View> getThemeAttributeStyledView(
         clazz: Class<out V>,
         context: Context,
-        @Suppress("UNUSED_PARAMETER") attrs: AttributeSet?,
+        attrs: AttributeSet?,
         @AttrRes styleThemeAttribute: Int
     ): V {
-        themeAttrStyledViewInstantiators.forEachReversedByIndex { factory ->
+        themeAttrStyledViewInstantiations.forEachReversedByIndex { factory ->
             factory(clazz, context, styleThemeAttribute)?.let { view ->
                 check(clazz.isInstance(view)) {
                     "Expected type $clazz but got ${view.javaClass}! Faulty factory: $factory"
@@ -108,8 +108,8 @@ class ViewFactoryImpl : ViewFactory {
         illegalArg("No factory found for this type: $clazz")
     }
 
-    private val viewInstantiators: MutableList<ViewInstantiator> = mutableListOf(::instantiateView)
-    private val themeAttrStyledViewInstantiators: MutableList<ThemeAttrStyledViewInstantiator> =
+    private val viewInstantiations: MutableList<ViewInstantiation> = mutableListOf(::instantiateView)
+    private val themeAttrStyledViewInstantiations: MutableList<ThemeAttrStyledViewInstantiation> =
         mutableListOf(::instantiateThemeAttrStyledView)
 }
 

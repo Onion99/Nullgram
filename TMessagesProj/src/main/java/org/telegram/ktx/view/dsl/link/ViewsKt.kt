@@ -20,6 +20,7 @@
 package org.telegram.ktx.view.dsl.link
 
 import android.content.Context
+import android.view.TextureView
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
@@ -29,6 +30,7 @@ import androidx.annotation.IdRes
 import androidx.annotation.StyleRes
 import org.telegram.ktx.view.dsl.NO_THEME
 import org.telegram.ktx.view.dsl.view
+import org.telegram.ui.Components.RLottieImageView
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
@@ -49,47 +51,59 @@ inline fun Context.button(
     @IdRes id: Int = View.NO_ID,
     @StyleRes theme: Int = NO_THEME,
     initView: Button.() -> Unit = {}
-): Button {
-    return view(id, theme, initView)
-}
+): Button = view(id, theme, initView)
 
 inline fun View.button(
     @IdRes id: Int = View.NO_ID,
     @StyleRes theme: Int = NO_THEME,
     initView: Button.() -> Unit = {}
-): Button {
-    return context.button(id, theme, initView)
-}
+): Button = context.button(id, theme, initView)
 
 inline fun Context.imageView(
     @IdRes id: Int = View.NO_ID,
     @StyleRes theme: Int = NO_THEME,
     initView: ImageView.() -> Unit = {}
-): ImageView {
-    return view(id, theme, initView)
-}
+): ImageView = view(id, theme, initView)
 
 inline fun View.imageView(
     @IdRes id: Int = View.NO_ID,
     @StyleRes theme: Int = NO_THEME,
     initView: ImageView.() -> Unit = {}
-): ImageView {
-    return context.imageView(id, theme, initView)
-}
+): ImageView = context.imageView(id, theme, initView)
 
 
 inline fun Context.editText(
     @IdRes id: Int = View.NO_ID,
     @StyleRes theme: Int = NO_THEME,
     initView: EditText.() -> Unit = {}
-): EditText {
-    return view(id, theme, initView)
-}
+): EditText = view(id, theme, initView)
 
 inline fun View.editText(
     @IdRes id: Int = View.NO_ID,
     @StyleRes theme: Int = NO_THEME,
     initView: EditText.() -> Unit = {}
-): EditText {
-    return context.editText(id, theme, initView)
-}
+): EditText = context.editText(id, theme, initView)
+
+inline fun Context.textureView(
+    @IdRes id: Int = View.NO_ID,
+    @StyleRes theme: Int = NO_THEME,
+    initView: TextureView.() -> Unit = {}
+): TextureView = view(id, theme, initView)
+
+inline fun View.textureView(
+    @IdRes id: Int = View.NO_ID,
+    @StyleRes theme: Int = NO_THEME,
+    initView: TextureView.() -> Unit = {}
+): TextureView = context.textureView(id, theme, initView)
+
+inline fun Context.rLottieImageView(
+    @IdRes id: Int = View.NO_ID,
+    @StyleRes theme: Int = NO_THEME,
+    initView: RLottieImageView.() -> Unit = {}
+): RLottieImageView = view(id, theme, initView)
+
+inline fun View.rLottieImageView(
+    @IdRes id: Int = View.NO_ID,
+    @StyleRes theme: Int = NO_THEME,
+    initView: RLottieImageView.() -> Unit = {}
+): RLottieImageView = context.rLottieImageView(id, theme, initView)

@@ -41,21 +41,6 @@ import android.view.ViewAnimationUtils
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.appcompat.widget.AppCompatTextView
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.animation.addListener
 import androidx.core.content.ContextCompat
 import androidx.core.view.children
@@ -63,17 +48,22 @@ import androidx.viewpager.widget.PagerAdapter
 import androidx.viewpager.widget.ViewPager
 import org.telegram.ktx.view.dsl.link.add
 import org.telegram.ktx.view.dsl.link.frameLayout
+import org.telegram.ktx.view.dsl.link.rLottieImageView
 import org.telegram.ktx.view.dsl.link.textView
+import org.telegram.ktx.view.dsl.link.textureView
+import org.telegram.ktx.view.dsl.link.viewPager
 import org.telegram.ktx.view.dsl.params.horizontalMargin
 import org.telegram.ktx.view.dsl.params.lParams
+import org.telegram.ktx.view.dsl.params.margin
+import org.telegram.ktx.view.dsl.params.matchParent
 import org.telegram.ktx.view.dsl.params.wrapContent
-import org.telegram.ktx.view.dsl.rLottieImageView
-import org.telegram.ktx.view.dsl.textureView
-import org.telegram.ktx.view.dsl.viewPager
 import org.telegram.ktx.view.property.createSimpleSelectorRoundRectDrawable
 import org.telegram.ktx.view.property.dip
+import org.telegram.ktx.view.property.gravityBottomCenter
 import org.telegram.ktx.view.property.gravityCenter
 import org.telegram.ktx.view.property.gravityCenterHorizontal
+import org.telegram.ktx.view.property.gravityTop
+import org.telegram.ktx.view.property.gravityTopEnd
 import org.telegram.messenger.AndroidUtilities
 import org.telegram.messenger.DispatchQueue
 import org.telegram.messenger.EmuDetector
@@ -86,7 +76,7 @@ import org.telegram.ui.ActionBar.Theme
 import org.telegram.ui.Cells.DrawerProfileCell
 import org.telegram.ui.Components.Easings
 import org.telegram.ui.Components.RLottieDrawable
-import org.telegram.ui.base.BaseComposeViewPage
+import org.telegram.ui.base.BaseDslViewPage
 import org.telegram.ui.drawable.ViewFlickerDrawable
 import org.telegram.ui.view.helper.UIHelper
 import javax.microedition.khronos.egl.EGL10
@@ -107,7 +97,7 @@ const val INTRO_VIEW_PAGER_INDICATOR_VIEW_MARGIN_WIDTH = 11f
 private val INTRO_PAGER_HEADER_TAG = Any()
 private val INTRO_PAGER_MESSAGE_TAG = Any()
 @Suppress("DEPRECATION")
-class IntroPage : BaseComposeViewPage() {
+class IntroPage : BaseDslViewPage() {
 
     private var titles = emptyArray<String>()
     private var messages = emptyArray<String>()
@@ -118,12 +108,12 @@ class IntroPage : BaseComposeViewPage() {
     private lateinit var viewPager: ViewPager
     private lateinit var bottomPages: IntroViewPagerIndicator
 
-    private val viewFlickerDrawable by lazy {
+    private val viewFlickerDrawable by lazy(LazyThreadSafetyMode.NONE) {
         ViewFlickerDrawable().apply { repeatProgress = 2f }
     }
 
 
-    private val evenObserver by lazy {
+    private val evenObserver by lazy(LazyThreadSafetyMode.NONE) {
         NotificationCenter.NotificationCenterDelegate { id, account, args ->
             if (id == NotificationCenter.needSetDayNightTheme){
                 updateThemeColor()
@@ -151,12 +141,153 @@ class IntroPage : BaseComposeViewPage() {
         return true
     }
 
+    override fun initView(context: Context): View  = context.frameLayout {
+        add(viewPager {
+            viewPager = this
+            adapter = IntroAdapter()
+            pageMargin = 0
+            offscreenPageLimit = 1
+            addOnPageChangeListener(object : ViewPager.OnPageChangeListener {
+                override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) {
+                    bottomPages.setPageOffset(position, positionOffset)
+                    if (measuredWidth == 0) return
+                    val offset = (position * measuredWidth + positionOffsetPixels - currentViewPagerPage * measuredWidth) / measuredWidth
+                    Intro.setScrollOffset(offset.toFloat())
+                }
 
-    override fun initComposeView(composeView: ComposeView) {
-        composeView.setContent {
-            IntroView()
+                override fun onPageSelected(position: Int) {
+                    currentViewPagerPage = position
+                }
+
+                override fun onPageScrollStateChanged(state: Int) {}
+            })
+        },lParams(matchParent,matchParent))
+
+        add(IntroViewPagerIndicator(context, viewPager, titles.size).apply {
+            bottomPages = this
+        },lParams(dip(INTRO_VIEW_PAGER_INDICATOR_VIEW_MARGIN_WIDTH * titles.size - INTRO_VIEW_PAGER_INDICATOR_VIEW_WIDTH).toInt(),dip(INTRO_VIEW_PAGER_INDICATOR_VIEW_WIDTH).toInt(),
+            gravityCenter){ topMargin = dip(40)}
+        )
+
+        add(textureView {
+            surfaceTextureListener = object : TextureView.SurfaceTextureListener {
+                override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
+                    if (eglThread == null) {
+                        eglThread = EGLThread(surface)
+                        with(eglThread!!) {
+                            setSurfaceTextureSize(width, height)
+                            postRunnable {
+                                val time = (System.currentTimeMillis() - currentDate) / 1000.0f
+                                Intro.setPage(currentViewPagerPage)
+                                Intro.setDate(time)
+                                Intro.onDrawFrame(0)
+                                if (isAlive && eglDisplay != null && eglSurface != null) {
+                                    egl10.eglSwapBuffers(eglDisplay, eglSurface)
+                                }
+                            }
+                            postRunnable(drawRunnable)
+                        }
+                    }
+                }
+
+                override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) {
+                    eglThread?.setSurfaceTextureSize(width, height)
+                }
+
+                override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
+                    eglThread?.shutdown()
+                    eglThread = null
+                    return true
+                }
+
+                override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {}
+            }
+        },lParams(dip(200),dip(150),gravityTop))
+        btnStart = object : AppCompatTextView(context) {
+            override fun onDraw(canvas: Canvas?) {
+                super.onDraw(canvas)
+                viewFlickerDrawable.run {
+                    parentWidth = measuredWidth
+                    rectTmp.set(0f, 0f, measuredWidth.toFloat(), measuredHeight.toFloat())
+                    draw(canvas!!, rectTmp, dip(4f), null)
+                }
+                //this.invalidate() todo: 不要在 jetpack compose AndroidView 调用 invalidate() 严重影响性能
+                this.requestLayout()
+            }
         }
-        NotificationCenter.getGlobalInstance().addObserver(evenObserver,NotificationCenter.needSetDayNightTheme)
+        btnStart.run {
+            text = LocaleController.getString("StartMessaging", R.string.StartMessaging)
+            gravity = gravityCenter
+            textSize = 15f
+            setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
+            setOnClickListener {
+
+            }
+            background = createSimpleSelectorRoundRectDrawable(dip(6),Theme.getColor(Theme.key_changephoneinfo_image2), Theme.getColor(Theme.key_chats_actionPressedBackground))
+        }
+        add(btnStart,lParams(matchParent,dip(59),gravityBottomCenter){
+            bottomMargin = dip(50)
+            horizontalMargin = dip(29)
+        })
+
+        var isDark = Theme.getCurrentTheme().isDark
+        fun getCurrentThemeDrawable() = RLottieDrawable(R.raw.sun,R.raw.sun.toString(),UIHelper.dpI(28),UIHelper.dpI(28),true,null).apply {
+            setPlayInDirectionOfCustomEndFrame(true)
+            beginApplyLayerColors()
+            commitApplyLayerColors()
+            customEndFrame = if (isDark) framesCount - 1 else 0
+            setCurrentFrame(if (!isDark) framesCount - 1 else 0,false)
+            colorFilter = PorterDuffColorFilter(Theme.getColor(Theme.key_changephoneinfo_image2), PorterDuff.Mode.SRC_IN)
+        }
+        add(rLottieImageView {
+            setAnimation(getCurrentThemeDrawable())
+            setOnClickListener {
+                if (DrawerProfileCell.switchingTheme) return@setOnClickListener
+                DrawerProfileCell.switchingTheme = true
+                // Prepare Reveal Anim
+                val pos = IntArray(2)
+                getLocationInWindow(pos)
+                pos[0] += measuredWidth / 2
+                pos[1] += measuredHeight / 2
+                val w = fragmentView.measuredWidth.toDouble()
+                val h = fragmentView.measuredHeight.toDouble()
+                var finalRadius = sqrt(((w - pos[0]) * (w - pos[0]) + (h - pos[1]) * (h - pos[1]))).coerceAtLeast(sqrt((pos[0] * pos[0] + (h - pos[1]) * (h - pos[1])))).toFloat()
+                val finalRadius2 = sqrt(((w - pos[0]) * (w - pos[0]) + pos[1] * pos[1])).coerceAtLeast(sqrt((pos[0] * pos[0] + pos[1] * pos[1]).toDouble())).toFloat()
+                finalRadius = finalRadius.coerceAtLeast(finalRadius2)
+                val startRadius = if(isDark) 0F else finalRadius
+                val endRadius =  if(isDark) finalRadius else 0F
+                val anim = ViewAnimationUtils.createCircularReveal(this@frameLayout, pos[0], pos[1], startRadius,endRadius)
+                anim.duration = 400
+                anim.interpolator = Easings.easeInOutQuad
+                // Reveal Anim Tint
+                if(isDark){
+                    fragmentView.backgroundTintList = ColorStateList.valueOf(Color.WHITE)
+                }
+                // Theme Save And Use
+                isDark = !isDark
+                val dayThemeName = "Blue"
+                val nightThemeName = "Night"
+                val themeInfo = if (isDark) {
+                    Theme.getTheme(nightThemeName)
+                } else {
+                    Theme.getTheme(dayThemeName)
+                }
+                Theme.selectedAutoNightType = Theme.AUTO_NIGHT_TYPE_NONE
+                Theme.saveAutoNightThemeConfig()
+                Theme.cancelAutoNightThemeCallbacks()
+                // start anim
+                anim.addListener(onEnd = {
+                    fragmentView.backgroundTintList = null
+                    setAnimation(getCurrentThemeDrawable())
+                    // event notify
+                    NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.needSetDayNightTheme, themeInfo, false, pos, -1, isDark)
+                })
+                playAnimation()
+                anim.start()
+            }
+        },lParams(dip(28),dip(28),gravityTopEnd){
+            margin = dip(4)
+        })
     }
 
     override fun finishFragment() {
@@ -164,186 +295,9 @@ class IntroPage : BaseComposeViewPage() {
         NotificationCenter.getGlobalInstance().removeObserver(evenObserver,NotificationCenter.needSetDayNightTheme)
     }
 
-    @Preview
-    @Composable
-    private fun IntroView() {
-        Box(Modifier.fillMaxSize()) {
-            AndroidView(
-                factory = {
-                    it.viewPager {
-                        viewPager = this
-                        adapter = IntroAdapter()
-                        pageMargin = 0
-                        offscreenPageLimit = 1
-                        addOnPageChangeListener(object : ViewPager.OnPageChangeListener {
-                            override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) {
-                                bottomPages.setPageOffset(position, positionOffset)
-                                if (measuredWidth == 0) return
-                                val offset = (position * measuredWidth + positionOffsetPixels - currentViewPagerPage * measuredWidth) / measuredWidth
-                                Intro.setScrollOffset(offset.toFloat())
-                            }
-
-                            override fun onPageSelected(position: Int) {
-                                currentViewPagerPage = position
-                            }
-
-                            override fun onPageScrollStateChanged(state: Int) {}
-                        })
-                    }
-                })
-            AndroidView(
-                modifier = Modifier
-                    .padding(top = 40.dp)
-                    .align(Alignment.Center)
-                    .width((INTRO_VIEW_PAGER_INDICATOR_VIEW_MARGIN_WIDTH * titles.size - INTRO_VIEW_PAGER_INDICATOR_VIEW_WIDTH).dp)
-                    .height(INTRO_VIEW_PAGER_INDICATOR_VIEW_WIDTH.dp),
-                factory = {
-                    IntroViewPagerIndicator(it, viewPager, titles.size).apply {
-                        bottomPages = this
-                    }
-                })
-            AndroidView(
-                modifier = Modifier
-                    .padding(top = 149.dp)
-                    .size(INTRO_PAGE_ICON_WIDTH.dp, INTRO_PAGE_ICON_HEIGHT.dp)
-                    .align(Alignment.TopCenter),
-                factory = {
-                    it.textureView {
-                        surfaceTextureListener = object : TextureView.SurfaceTextureListener {
-                            override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
-                                if (eglThread == null) {
-                                    eglThread = EGLThread(surface)
-                                    with(eglThread!!) {
-                                        setSurfaceTextureSize(width, height)
-                                        postRunnable {
-                                            val time = (System.currentTimeMillis() - currentDate) / 1000.0f
-                                            Intro.setPage(currentViewPagerPage)
-                                            Intro.setDate(time)
-                                            Intro.onDrawFrame(0)
-                                            if (isAlive && eglDisplay != null && eglSurface != null) {
-                                                egl10.eglSwapBuffers(eglDisplay, eglSurface)
-                                            }
-                                        }
-                                        postRunnable(drawRunnable)
-                                    }
-                                }
-                            }
-
-                            override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) {
-                                eglThread?.setSurfaceTextureSize(width, height)
-                            }
-
-                            override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
-                                eglThread?.shutdown()
-                                eglThread = null
-                                return true
-                            }
-
-                            override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {}
-                        }
-                    }
-                }
-            )
-            AndroidView(
-                modifier = Modifier
-                    .padding(34.dp, 49.dp)
-                    .fillMaxWidth()
-                    .height(50.dp)
-                    .align(Alignment.BottomCenter),
-                factory = {
-                     btnStart = object : AppCompatTextView(it) {
-                        override fun onDraw(canvas: Canvas?) {
-                            super.onDraw(canvas)
-                            viewFlickerDrawable.run {
-                                parentWidth = measuredWidth
-                                rectTmp.set(0f, 0f, measuredWidth.toFloat(), measuredHeight.toFloat())
-                                draw(canvas!!, rectTmp, dip(4f), null)
-                            }
-                            //this.invalidate() todo: 不要在 jetpack compose AndroidView 调用 invalidate() 严重影响性能
-                            this.requestLayout()
-                        }
-                    }
-                    btnStart.run {
-                        text = LocaleController.getString("StartMessaging", R.string.StartMessaging)
-                        gravity = gravityCenter
-                        textSize = 15f
-                        setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
-                        background = createSimpleSelectorRoundRectDrawable(dip(6),Theme.getColor(Theme.key_changephoneinfo_image2), Theme.getColor(Theme.key_chats_actionPressedBackground))
-                    }
-                    btnStart
-                }
-            )
-            AndroidView(
-                modifier = Modifier
-                    .statusBarsPadding()
-                    .padding(end = 16.dp)
-                    .size(28.dp)
-                    .align(Alignment.TopEnd),
-                factory = {
-                    var isDark = Theme.getCurrentTheme().isDark
-                    fun getCurrentThemeDrawable() = RLottieDrawable(R.raw.sun,R.raw.sun.toString(),UIHelper.dpI(28),UIHelper.dpI(28),true,null).apply {
-                        setPlayInDirectionOfCustomEndFrame(true)
-                        beginApplyLayerColors()
-                        commitApplyLayerColors()
-                        customEndFrame = if (!isDark) framesCount - 1 else 0
-                        setCurrentFrame(if (isDark) framesCount - 1 else 0,false)
-                        colorFilter = PorterDuffColorFilter(Theme.getColor(Theme.key_changephoneinfo_image2), PorterDuff.Mode.SRC_IN)
-                    }
-                    it.rLottieImageView {
-                        setAnimation(getCurrentThemeDrawable())
-                        setOnClickListener {
-                            if (DrawerProfileCell.switchingTheme) return@setOnClickListener
-                            DrawerProfileCell.switchingTheme = true
-                            // Prepare Reveal Anim
-                            val pos = IntArray(2)
-                            getLocationInWindow(pos)
-                            pos[0] += measuredWidth / 2
-                            pos[1] += measuredHeight / 2
-                            val w = composeView.measuredWidth.toDouble()
-                            val h = composeView.measuredHeight.toDouble()
-                            var finalRadius = sqrt(((w - pos[0]) * (w - pos[0]) + (h - pos[1]) * (h - pos[1]))).coerceAtLeast(sqrt((pos[0] * pos[0] + (h - pos[1]) * (h - pos[1])))).toFloat()
-                            val finalRadius2 = sqrt(((w - pos[0]) * (w - pos[0]) + pos[1] * pos[1])).coerceAtLeast(sqrt((pos[0] * pos[0] + pos[1] * pos[1]).toDouble())).toFloat()
-                            finalRadius = finalRadius.coerceAtLeast(finalRadius2)
-                            val startRadius = if(isDark) 0F else finalRadius
-                            val endRadius =  if(isDark) finalRadius else 0F
-                            val anim = ViewAnimationUtils.createCircularReveal(composeView, pos[0], pos[1], startRadius,endRadius)
-                            anim.setDuration(400)
-                            anim.interpolator = Easings.easeInOutQuad
-                            // Reveal Anim Tint
-                            if(isDark){
-                                composeView.backgroundTintList = ColorStateList.valueOf(Color.WHITE)
-                            }
-                            // Theme Save And Use
-                            isDark = !isDark
-                            val dayThemeName = "Blue"
-                            val nightThemeName = "Night"
-                            val themeInfo = if (isDark) {
-                                Theme.getTheme(nightThemeName)
-                            } else {
-                                Theme.getTheme(dayThemeName)
-                            }
-                            Theme.selectedAutoNightType = Theme.AUTO_NIGHT_TYPE_NONE
-                            Theme.saveAutoNightThemeConfig()
-                            Theme.cancelAutoNightThemeCallbacks()
-                            // start anim
-                            anim.addListener(onEnd = {
-                                composeView.backgroundTintList = null
-                                setAnimation(getCurrentThemeDrawable())
-                                // event notify
-                                NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.needSetDayNightTheme, themeInfo, false, pos, -1, isDark)
-                            })
-                            playAnimation()
-                            anim.start()
-                        }
-                    }
-                }
-            )
-        }
-    }
-
 
     private fun updateThemeColor(){
-        composeView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite))
+        fragmentView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite))
         viewPager.children.onEach {
             val headerTextView: TextView = it.findViewWithTag(INTRO_PAGER_HEADER_TAG)
             headerTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
@@ -351,8 +305,8 @@ class IntroPage : BaseComposeViewPage() {
             messageTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText3))
         }
         btnStart.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
-        eglThread!!.postRunnable {
-            eglThread?.run {
+        eglThread?.run {
+            postRunnable {
                 loadTexture(R.drawable.intro_powerful_mask, 17, Theme.getColor(Theme.key_windowBackgroundWhite), true)
                 updatePowerfulTextures()
                 loadTexture(eglThread!!.telegramMaskProvider, 23, true)

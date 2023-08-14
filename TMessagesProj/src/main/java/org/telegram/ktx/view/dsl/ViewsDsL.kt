@@ -39,6 +39,9 @@ inline fun Context.withTheme(theme: Int) = ContextThemeWrapper(this, theme)
 @Suppress("NOTHING_TO_INLINE")
 inline fun Context.wrapCtxIfNeeded(theme: Int): Context = if (theme == NO_THEME) this else withTheme(theme)
 
+typealias NewViewRef<V> = (Context) -> V
+inline fun <V: View> Context.view(createView: NewViewRef<V>, initView: V.() -> Unit = {}):V = createView(this).apply(initView)
+
 inline fun <V : View> Context.view(
     createView: NewViewRef<V>,
     @IdRes id: Int = View.NO_ID,
@@ -60,4 +63,5 @@ val Context.viewFactory: ViewFactory
     } catch (t: Throwable) {
         ViewFactory.appInstance
     }
+
 

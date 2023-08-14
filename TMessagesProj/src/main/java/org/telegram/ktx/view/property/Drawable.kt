@@ -19,6 +19,7 @@
 
 package org.telegram.ktx.view.property
 
+//noinspection SuspiciousImport
 import android.R
 import android.annotation.SuppressLint
 import android.content.res.ColorStateList
@@ -31,9 +32,9 @@ import android.os.Build
 import android.util.StateSet
 import android.view.View
 
-fun View.createSimpleSelectorRoundRectDrawable(rad:Int, defaultColor: Int, pressedColor: Int):Drawable? = createSimpleSelectorRoundRectDrawable(rad, defaultColor, pressedColor, pressedColor)
+fun View.createSimpleSelectorRoundRectDrawable(rad:Int, defaultColor: Int, pressedColor: Int):Drawable = createSimpleSelectorRoundRectDrawable(rad, defaultColor, pressedColor, pressedColor)
 @SuppressLint("ObsoleteSdkInt")
-fun View.createSimpleSelectorRoundRectDrawable(rad: Int, defaultColor: Int, pressedColor: Int, maskColor: Int): Drawable? {
+fun View.createSimpleSelectorRoundRectDrawable(rad:Int, defaultColor: Int, pressedColor: Int, maskColor: Int): Drawable{
     val defaultDrawable = ShapeDrawable(
         RoundRectShape(
             floatArrayOf(rad.toFloat(), rad.toFloat(), rad.toFloat(), rad.toFloat(), rad.toFloat(), rad.toFloat(), rad.toFloat(), rad.toFloat()),
