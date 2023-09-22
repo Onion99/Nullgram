@@ -63,6 +63,7 @@ import org.telegram.ktx.view.property.gravityBottomCenter
 import org.telegram.ktx.view.property.gravityCenter
 import org.telegram.ktx.view.property.gravityCenterHorizontal
 import org.telegram.ktx.view.property.gravityTop
+import org.telegram.ktx.view.property.gravityTopCenter
 import org.telegram.ktx.view.property.gravityTopEnd
 import org.telegram.messenger.AndroidUtilities
 import org.telegram.messenger.DispatchQueue
@@ -73,9 +74,11 @@ import org.telegram.messenger.LocaleController
 import org.telegram.messenger.NotificationCenter
 import org.telegram.messenger.R
 import org.telegram.ui.ActionBar.Theme
+import org.telegram.ui.ActionBar.ThemeDescription
 import org.telegram.ui.Cells.DrawerProfileCell
 import org.telegram.ui.Components.Easings
 import org.telegram.ui.Components.RLottieDrawable
+import org.telegram.ui.Components.SimpleThemeDescription
 import org.telegram.ui.base.BaseDslViewPage
 import org.telegram.ui.drawable.ViewFlickerDrawable
 import org.telegram.ui.view.helper.UIHelper
@@ -116,7 +119,7 @@ class IntroPage : BaseDslViewPage() {
     private val evenObserver by lazy(LazyThreadSafetyMode.NONE) {
         NotificationCenter.NotificationCenterDelegate { id, account, args ->
             if (id == NotificationCenter.needSetDayNightTheme){
-                updateThemeColor()
+                updateThemeColor(false)
             }
         }
     }
@@ -138,37 +141,11 @@ class IntroPage : BaseDslViewPage() {
             LocaleController.getString("Page4Message", R.string.Page4Message),
             LocaleController.getString("Page6Message", R.string.Page6Message)
         )
+//        NotificationCenter.getGlobalInstance().addObserver(evenObserver,NotificationCenter.needSetDayNightTheme)
         return true
     }
 
     override fun initView(context: Context): View  = context.frameLayout {
-        add(viewPager {
-            viewPager = this
-            adapter = IntroAdapter()
-            pageMargin = 0
-            offscreenPageLimit = 1
-            addOnPageChangeListener(object : ViewPager.OnPageChangeListener {
-                override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) {
-                    bottomPages.setPageOffset(position, positionOffset)
-                    if (measuredWidth == 0) return
-                    val offset = (position * measuredWidth + positionOffsetPixels - currentViewPagerPage * measuredWidth) / measuredWidth
-                    Intro.setScrollOffset(offset.toFloat())
-                }
-
-                override fun onPageSelected(position: Int) {
-                    currentViewPagerPage = position
-                }
-
-                override fun onPageScrollStateChanged(state: Int) {}
-            })
-        },lParams(matchParent,matchParent))
-
-        add(IntroViewPagerIndicator(context, viewPager, titles.size).apply {
-            bottomPages = this
-        },lParams(dip(INTRO_VIEW_PAGER_INDICATOR_VIEW_MARGIN_WIDTH * titles.size - INTRO_VIEW_PAGER_INDICATOR_VIEW_WIDTH).toInt(),dip(INTRO_VIEW_PAGER_INDICATOR_VIEW_WIDTH).toInt(),
-            gravityCenter){ topMargin = dip(40)}
-        )
-
         add(textureView {
             surfaceTextureListener = object : TextureView.SurfaceTextureListener {
                 override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
@@ -202,7 +179,37 @@ class IntroPage : BaseDslViewPage() {
 
                 override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {}
             }
-        },lParams(dip(200),dip(150),gravityTop))
+        },lParams(dip(200),dip(150),gravityTopCenter){
+            topMargin = dip(120)
+        })
+
+        add(viewPager {
+            viewPager = this
+            adapter = IntroAdapter()
+            pageMargin = 0
+            offscreenPageLimit = 1
+            addOnPageChangeListener(object : ViewPager.OnPageChangeListener {
+                override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) {
+                    bottomPages.setPageOffset(position, positionOffset)
+                    if (measuredWidth == 0) return
+                    val offset = (position * measuredWidth + positionOffsetPixels - currentViewPagerPage * measuredWidth) / measuredWidth
+                    Intro.setScrollOffset(offset.toFloat())
+                }
+
+                override fun onPageSelected(position: Int) {
+                    currentViewPagerPage = position
+                }
+
+                override fun onPageScrollStateChanged(state: Int) {}
+            })
+        },lParams(matchParent,matchParent))
+
+        add(IntroViewPagerIndicator(context, viewPager, titles.size).apply {
+            bottomPages = this
+        },lParams(dip(INTRO_VIEW_PAGER_INDICATOR_VIEW_MARGIN_WIDTH * titles.size - INTRO_VIEW_PAGER_INDICATOR_VIEW_WIDTH).toInt(),dip(INTRO_VIEW_PAGER_INDICATOR_VIEW_WIDTH).toInt(),
+            gravityCenter){ topMargin = dip(40)}
+        )
+
         btnStart = object : AppCompatTextView(context) {
             override fun onDraw(canvas: Canvas?) {
                 super.onDraw(canvas)
@@ -230,21 +237,37 @@ class IntroPage : BaseDslViewPage() {
             horizontalMargin = dip(29)
         })
 
-        var isDark = Theme.getCurrentTheme().isDark
-        fun getCurrentThemeDrawable() = RLottieDrawable(R.raw.sun,R.raw.sun.toString(),UIHelper.dpI(28),UIHelper.dpI(28),true,null).apply {
+        val isDark = Theme.getCurrentTheme().isDark
+        val currentThemeDrawable= RLottieDrawable(R.raw.sun,R.raw.sun.toString(),dip(28),dip(28),true,null)
+        currentThemeDrawable.run {
             setPlayInDirectionOfCustomEndFrame(true)
             beginApplyLayerColors()
             commitApplyLayerColors()
             customEndFrame = if (isDark) framesCount - 1 else 0
-            setCurrentFrame(if (!isDark) framesCount - 1 else 0,false)
+            setCurrentFrame(if (isDark) framesCount - 1 else 0,false)
             colorFilter = PorterDuffColorFilter(Theme.getColor(Theme.key_changephoneinfo_image2), PorterDuff.Mode.SRC_IN)
         }
         add(rLottieImageView {
-            setAnimation(getCurrentThemeDrawable())
+            setAnimation(currentThemeDrawable)
             setOnClickListener {
                 if (DrawerProfileCell.switchingTheme) return@setOnClickListener
                 DrawerProfileCell.switchingTheme = true
-                // Prepare Reveal Anim
+                // Theme Save And Use
+                val toDark = !Theme.isCurrentThemeDark()
+                val dayThemeName = "Blue"
+                val nightThemeName = "Night"
+                val themeInfo = if (toDark) {
+                    Theme.getTheme(nightThemeName)
+                } else {
+                    Theme.getTheme(dayThemeName)
+                }
+                Theme.selectedAutoNightType = Theme.AUTO_NIGHT_TYPE_NONE
+                Theme.saveAutoNightThemeConfig()
+                Theme.cancelAutoNightThemeCallbacks()
+                // icon anim
+                currentThemeDrawable.customEndFrame = if(toDark) currentThemeDrawable.framesCount -1 else 0
+                playAnimation()
+                // background anim
                 val pos = IntArray(2)
                 getLocationInWindow(pos)
                 pos[0] += measuredWidth / 2
@@ -254,41 +277,64 @@ class IntroPage : BaseDslViewPage() {
                 var finalRadius = sqrt(((w - pos[0]) * (w - pos[0]) + (h - pos[1]) * (h - pos[1]))).coerceAtLeast(sqrt((pos[0] * pos[0] + (h - pos[1]) * (h - pos[1])))).toFloat()
                 val finalRadius2 = sqrt(((w - pos[0]) * (w - pos[0]) + pos[1] * pos[1])).coerceAtLeast(sqrt((pos[0] * pos[0] + pos[1] * pos[1]).toDouble())).toFloat()
                 finalRadius = finalRadius.coerceAtLeast(finalRadius2)
-                val startRadius = if(isDark) 0F else finalRadius
-                val endRadius =  if(isDark) finalRadius else 0F
+                val startRadius = if(toDark) 0F else finalRadius
+                val endRadius =  if(toDark) finalRadius else 0F
                 val anim = ViewAnimationUtils.createCircularReveal(this@frameLayout, pos[0], pos[1], startRadius,endRadius)
                 anim.duration = 400
                 anim.interpolator = Easings.easeInOutQuad
                 // Reveal Anim Tint
-                if(isDark){
+                if(toDark){
                     fragmentView.backgroundTintList = ColorStateList.valueOf(Color.WHITE)
                 }
-                // Theme Save And Use
-                isDark = !isDark
-                val dayThemeName = "Blue"
-                val nightThemeName = "Night"
-                val themeInfo = if (isDark) {
-                    Theme.getTheme(nightThemeName)
-                } else {
-                    Theme.getTheme(dayThemeName)
-                }
-                Theme.selectedAutoNightType = Theme.AUTO_NIGHT_TYPE_NONE
-                Theme.saveAutoNightThemeConfig()
-                Theme.cancelAutoNightThemeCallbacks()
                 // start anim
                 anim.addListener(onEnd = {
                     fragmentView.backgroundTintList = null
-                    setAnimation(getCurrentThemeDrawable())
-                    // event notify
-                    NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.needSetDayNightTheme, themeInfo, false, pos, -1, isDark)
                 })
-                playAnimation()
                 anim.start()
+                // theme event change
+                NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.needSetDayNightTheme, themeInfo, false, pos, -1, toDark)
+                DrawerProfileCell.switchingTheme = false
+//                // Prepare Reveal Anim
+//                val pos = IntArray(2)
+//                getLocationInWindow(pos)
+//                pos[0] += measuredWidth / 2
+//                pos[1] += measuredHeight / 2
+//                val w = fragmentView.measuredWidth.toDouble()
+//                val h = fragmentView.measuredHeight.toDouble()
+//                var finalRadius = sqrt(((w - pos[0]) * (w - pos[0]) + (h - pos[1]) * (h - pos[1]))).coerceAtLeast(sqrt((pos[0] * pos[0] + (h - pos[1]) * (h - pos[1])))).toFloat()
+//                val finalRadius2 = sqrt(((w - pos[0]) * (w - pos[0]) + pos[1] * pos[1])).coerceAtLeast(sqrt((pos[0] * pos[0] + pos[1] * pos[1]).toDouble())).toFloat()
+//                finalRadius = finalRadius.coerceAtLeast(finalRadius2)
+//                val startRadius = if(toDark) 0F else finalRadius
+//                val endRadius =  if(toDark) finalRadius else 0F
+//                val anim = ViewAnimationUtils.createCircularReveal(this@frameLayout, pos[0], pos[1], startRadius,endRadius)
+//                anim.duration = 400
+//                anim.interpolator = Easings.easeInOutQuad
+//                // Reveal Anim Tint
+//                if(toDark){
+//                    fragmentView.backgroundTintList = ColorStateList.valueOf(Color.WHITE)
+//                }
+//                // start anim
+//                anim.addListener(onEnd = {
+//                    fragmentView.backgroundTintList = null
+//                    setAnimation(currentThemeDrawable)
+//                    // event notify
+//                    NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.needSetDayNightTheme, themeInfo, false, pos, -1, toDark)
+//                })
+//                playAnimation()
+//                anim.start()
             }
         },lParams(dip(28),dip(28),gravityTopEnd){
             margin = dip(4)
         })
     }
+    override fun getThemeDescriptions(): ArrayList<ThemeDescription?>? {
+        return SimpleThemeDescription.createThemeDescriptions(
+            { updateThemeColor(true) }, Theme.key_windowBackgroundWhite,
+            Theme.key_windowBackgroundWhiteBlueText4, Theme.key_chats_actionBackground, Theme.key_chats_actionPressedBackground,
+            Theme.key_featuredStickers_buttonText, Theme.key_windowBackgroundWhiteBlackText, Theme.key_windowBackgroundWhiteGrayText3
+        )
+    }
+
 
     override fun finishFragment() {
         super.finishFragment()
@@ -296,24 +342,28 @@ class IntroPage : BaseDslViewPage() {
     }
 
 
-    private fun updateThemeColor(){
+    private fun updateThemeColor(fromTheme:Boolean){
         fragmentView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite))
-        viewPager.children.onEach {
-            val headerTextView: TextView = it.findViewWithTag(INTRO_PAGER_HEADER_TAG)
-            headerTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
-            val messageTextView: TextView = it.findViewWithTag(INTRO_PAGER_MESSAGE_TAG)
-            messageTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText3))
-        }
         btnStart.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
-        eglThread?.run {
-            postRunnable {
-                loadTexture(R.drawable.intro_powerful_mask, 17, Theme.getColor(Theme.key_windowBackgroundWhite), true)
-                updatePowerfulTextures()
-                loadTexture(eglThread!!.telegramMaskProvider, 23, true)
-                updateTelegramTextures()
-                Intro.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite))
+        btnStart.background = Theme.createSimpleSelectorRoundRectDrawable(UIHelper.dpI(6), Theme.getColor(Theme.key_changephoneinfo_image2), Theme.getColor(Theme.key_chats_actionPressedBackground))
+        bottomPages.invalidate()
+        if(fromTheme){
+            viewPager.children.onEach {
+                val headerTextView: TextView = it.findViewWithTag(INTRO_PAGER_HEADER_TAG)
+                headerTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
+                val messageTextView: TextView = it.findViewWithTag(INTRO_PAGER_MESSAGE_TAG)
+                messageTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText3))
             }
-        }
+            eglThread?.run {
+                postRunnable {
+                    loadTexture(R.drawable.intro_powerful_mask, 17, Theme.getColor(Theme.key_windowBackgroundWhite), true)
+                    updatePowerfulTextures()
+                    loadTexture(eglThread!!.telegramMaskProvider, 23, true)
+                    updateTelegramTextures()
+                    Intro.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite))
+                }
+            }
+        }else Intro.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite))
     }
 
     inner class EGLThread(private val surfaceTexture: SurfaceTexture) : DispatchQueue("EGLThread") {
@@ -332,7 +382,7 @@ class IntroPage : BaseDslViewPage() {
             val canvas = Canvas(bitmap)
             canvas.drawColor(Theme.getColor(Theme.key_windowBackgroundWhite))
             val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-            paint.setXfermode(PorterDuffXfermode(PorterDuff.Mode.CLEAR))
+            paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
             canvas.drawCircle(bitmap.width / 2f, bitmap.height / 2f, size / 2f, paint)
             return@GenericProvider bitmap
         }
@@ -516,7 +566,7 @@ class IntroPage : BaseDslViewPage() {
                     val tempBitmap = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
                     val canvas = Canvas(tempBitmap)
                     val tempPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.DITHER_FLAG)
-                    tempPaint.setColorFilter(PorterDuffColorFilter(tintColor, PorterDuff.Mode.SRC_IN))
+                    tempPaint.colorFilter = PorterDuffColorFilter(tintColor, PorterDuff.Mode.SRC_IN)
                     canvas.drawBitmap(bitmap, 0f, 0f, tempPaint)
                     GLUtils.texImage2D(GL10.GL_TEXTURE_2D, 0, tempBitmap, 0)
                     tempBitmap.recycle()
@@ -611,7 +661,7 @@ class IntroViewPagerIndicator(context: Context, private val viewPager: ViewPager
             paint.color = if (Theme.getCurrentTheme().isDark) -0xaaaaab else -0x444445
         }
         //  draw per dot (no current )
-        var pageIndexViewWidth = 0F
+        var pageIndexViewWidth: Float
         currentPage = viewPager.currentItem
         for (pagePosition in 0 until pagesCount) {
             if (pagePosition == currentPage) continue

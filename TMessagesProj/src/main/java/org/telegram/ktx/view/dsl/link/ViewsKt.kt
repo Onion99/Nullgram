@@ -30,7 +30,9 @@ import androidx.annotation.IdRes
 import androidx.annotation.StyleRes
 import org.telegram.ktx.view.dsl.NO_THEME
 import org.telegram.ktx.view.dsl.view
+import org.telegram.ui.Components.OutlineTextContainerView
 import org.telegram.ui.Components.RLottieImageView
+import org.telegram.ui.view.cutomview.text.TextViewSwitcher
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
@@ -107,3 +109,27 @@ inline fun View.rLottieImageView(
     @StyleRes theme: Int = NO_THEME,
     initView: RLottieImageView.() -> Unit = {}
 ): RLottieImageView = context.rLottieImageView(id, theme, initView)
+
+inline fun Context.textViewSwitcher(
+    @IdRes id: Int = View.NO_ID,
+    @StyleRes theme: Int = NO_THEME,
+    initView: TextViewSwitcher.() -> Unit = {}
+): TextViewSwitcher = view(id, theme, initView)
+
+inline fun View.textViewSwitcher(
+    @IdRes id: Int = View.NO_ID,
+    @StyleRes theme: Int = NO_THEME,
+    initView: TextViewSwitcher.() -> Unit = {}
+): TextViewSwitcher = context.textViewSwitcher(id, theme, initView)
+
+inline fun Context.outlineTextContainerView(
+    @IdRes id: Int = View.NO_ID,
+    @StyleRes theme: Int = NO_THEME,
+    initView: OutlineTextContainerView.() -> Unit = {}
+): OutlineTextContainerView = view(id, theme, initView)
+
+inline fun View.outlineTextContainerView(
+    @IdRes id: Int = View.NO_ID,
+    @StyleRes theme: Int = NO_THEME,
+    initView: OutlineTextContainerView.() -> Unit = {}
+): OutlineTextContainerView = context.outlineTextContainerView(id, theme, initView)

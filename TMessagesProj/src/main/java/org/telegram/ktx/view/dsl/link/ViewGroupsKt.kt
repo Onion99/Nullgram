@@ -24,6 +24,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import androidx.annotation.IdRes
 import androidx.annotation.StyleRes
 import androidx.core.view.get
@@ -123,5 +124,17 @@ inline fun View.viewPager(
     @StyleRes theme: Int = NO_THEME,
     initView: ViewPager.() -> Unit = {}
 ): ViewPager = context.viewPager(id, theme, initView)
+
+inline fun Context.scrollView(
+    @IdRes id: Int = View.NO_ID,
+    @StyleRes theme: Int = NO_THEME,
+    initView: ScrollView.() -> Unit = {}
+): ScrollView = view(::ScrollView, id, theme, initView)
+
+inline fun View.scrollView(
+    @IdRes id: Int = View.NO_ID,
+    @StyleRes theme: Int = NO_THEME,
+    initView: ScrollView.() -> Unit = {}
+): ScrollView = context.scrollView(id, theme, initView)
 
 

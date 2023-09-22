@@ -117,25 +117,7 @@ class LaunchActivity : AppCompatActivity(){
             }
         }
         setContentView(frameLayout,ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-        /*themeSwitchImageView = ImageView(this)
-        themeSwitchImageView.isVisible = false
-        themeSwitchSunView = object :View(this){
-            override fun onDraw(canvas: Canvas?) {
-                super.onDraw(canvas)
-                canvas?.run {
-                    themeSwitchSunDrawable?.draw(this)
-                    invalidate()
-                }
-            }
-        }
-        themeSwitchImageView.isVisible = false*/
-//        frameLayout.addView(themeSwitchSunView, LayoutHelper.createFrame(48, 48F))
         actionBarLayout = INavigationLayout.newLayout(this)
-/*        actionBarLayout.setDelegate(object :INavigationLayout.INavigationLayoutDelegate{
-            override fun needAddFragmentToStack(fragment: BaseFragment?, layout: INavigationLayout?): Boolean {
-                return true
-            }
-        })*/
         actionBarLayout.fragmentStack = mainFragmentsStack
         drawerLayoutContainer = object : DrawerLayoutContainer(this){}
         drawerLayoutContainer.parentActionBarLayout = actionBarLayout

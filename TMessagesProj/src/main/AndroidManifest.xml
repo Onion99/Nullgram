@@ -115,7 +115,7 @@
         tools:replace="android:supportsRtl">
 
         <activity-alias
-            android:enabled="true"
+            android:enabled="false"
             android:name="org.telegram.messenger.DefaultIcon"
             android:targetActivity="org.telegram.ui.container.LaunchActivity"
             android:exported="true">
@@ -130,7 +130,7 @@
         </activity-alias>
 
         <activity-alias
-            android:enabled="false"
+            android:enabled="true"
             android:name="org.telegram.messenger.MainIcon"
             android:targetActivity="org.telegram.ui.LaunchActivity"
             android:icon="@mipmap/ic_launcher_mainicon"

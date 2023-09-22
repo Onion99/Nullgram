@@ -23,9 +23,13 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Point
+import android.graphics.Typeface
 import android.util.DisplayMetrics
 import android.view.WindowManager
 import org.telegram.messenger.AndroidUtilities
+import org.telegram.messenger.BuildVars
+import org.telegram.messenger.FileLog
+import java.util.Hashtable
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -45,6 +49,9 @@ object UIHelper {
     var statusBarHeight = 0
     // 底部导航栏高度
     var navigationBarHeight = 0
+    // 字体type 缓存
+    private val typefaceCache = Hashtable<String, Typeface>()
+
 
     // ------------------------------------------------------------------------
     // 检查系统屏幕配置,从而展示UI所需要的界面尺寸
@@ -85,33 +92,73 @@ object UIHelper {
     }
 
     // ------------------------------------------------------------------------
-    // ui dp size
+    // ui dp size - Float -Int
     // ------------------------------------------------------------------------
     fun dpI(value:Float):Int{
         if(value == 0F) return 0
         return floor((density * value)).toInt()
     }
+    // ------------------------------------------------------------------------
+    // ui dp size - Int -Int
+    // ------------------------------------------------------------------------
     fun dpI(value:Int):Int{
         if(value == 0) return 0
         return floor((density * value)).toInt()
     }
 
-
+    // ------------------------------------------------------------------------
+    // ui dp siz  - Float -Float
+    // ------------------------------------------------------------------------
     fun dpF(value:Float):Float{
         if(value == 0F) return 0F
         return floor((density * value))
     }
 
 
+    // ------------------------------------------------------------------------
+    // System StatusBar
+    // ------------------------------------------------------------------------
     @SuppressLint("InternalInsetResource", "DiscouragedApi")
     fun getStatusBarHeight(context: Context): Int {
         val resourceId = context.resources.getIdentifier("status_bar_height", "dimen", "android")
         return if (resourceId > 0) context.resources.getDimensionPixelSize(resourceId) else 0
     }
-
+    // ------------------------------------------------------------------------
+    // System NavigationBar
+    // ------------------------------------------------------------------------
     @SuppressLint("InternalInsetResource", "DiscouragedApi")
     private fun getNavigationBarHeight(context: Context): Int {
         val resourceId = context.resources.getIdentifier("navigation_bar_height", "dimen", "android")
         return if (resourceId > 0) context.resources.getDimensionPixelSize(resourceId) else 0
     }
+
+
+    // ------------------------------------------------------------------------
+    // App Font Typeface,Path assets/fonts
+    // ------------------------------------------------------------------------
+    fun getTypeface(assetPath: String): Typeface? {
+        if (!typefaceCache.containsKey(assetPath)) {
+            kotlin.runCatching {
+                var t: Typeface? = null
+                when (assetPath) {
+                    "fonts/rmedium.ttf" -> t = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+                    "fonts/ritalic.ttf" -> t = Typeface.create("sans-serif", Typeface.ITALIC)
+                    "fonts/rmediumitalic.ttf" -> t = Typeface.create("sans-serif-medium", Typeface.ITALIC)
+                    "fonts/rmono.ttf" -> t = Typeface.MONOSPACE
+                    "fonts/mw_bold.ttf" -> t = Typeface.create("serif", Typeface.BOLD)
+                    "fonts/rcondensedbold.ttf" -> t = Typeface.create("sans-serif-condensed", Typeface.BOLD)
+                }
+                typefaceCache[assetPath] = t
+            }.getOrElse {
+                if (BuildVars.LOGS_ENABLED) {
+                    FileLog.e("Could not get typeface '" + assetPath + "' because " + it.message)
+                }
+            }
+        }
+        return typefaceCache.getOrDefault(assetPath,null)
+    }
 }
+
+fun Any.dip(value: Int) = UIHelper.dpI(value)
+fun Any.dip(value: Float) = UIHelper.dpF(value)
+fun Any.dipFI(value: Float) = UIHelper.dpI(value)
